@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#0e1116" />
+<title>۲۰۴۸ — بازی کلاسیک</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23edc22e'/%3E%3Ctext x='32' y='43' font-family='Tahoma,sans-serif' font-size='26' font-weight='bold' text-anchor='middle' fill='%23fffaf0'%3E2048%3C/text%3E%3C/svg%3E" />
+<style>
+  :root {
+    --gap: 2.4%;
+    --pad: 3%;
+    --radius: 16px;
+    --tile-radius: 8px;
+    --font: "Vazirmatn", "Segoe UI", Tahoma, system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body { min-height: 100%; }
+
+  body {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 16px;
+    background:
+      radial-gradient(1000px 600px at 50% -10%, #202a38 0%, rgba(14,17,22,0) 65%),
+      radial-gradient(700px 500px at 90% 110%, #2a1f2e 0%, rgba(14,17,22,0) 60%),
+      #0e1116;
+    color: #e9e7e2;
+    font-family: var(--font);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .app { width: min(100%, 462px); margin: auto; }
+
+  @media (max-height: 720px) {
+    body { padding: 12px; }
+    .app { width: min(100%, 380px); }
+    .hint { display: none; }
+  }
+
+  @media (max-height: 560px) {
+    .app { width: min(100%, 300px); }
+    .brand p { display: none; }
+  }
+
+  /* ---------- header ---------- */
+  .topbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .brand h1 {
+    margin: 0;
+    font-size: clamp(30px, 8vw, 40px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(120deg, #f7d488, #ef8f6a 55%, #e8628c);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .brand p {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: #8b94a3;
+  }
+
+  .scores { display: flex; gap: 8px; }
+
+  .score-box {
+    position: relative;
+    min-width: 82px;
+    padding: 6px 12px 7px;
+    text-align: center;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+  }
+
+  .score-box .label {
+    display: block;
+    font-size: 11px;
+    color: #9099a8;
+    margin-bottom: 1px;
+  }
+
+  .score-box .value {
+    display: block;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .01em;
+  }
+
+  .float {
+    position: absolute;
+    top: -4px;
+    inset-inline-end: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #7ee3a4;
+    pointer-events: none;
+    animation: floatUp .7s ease-out forwards;
+  }
+
+  @keyframes floatUp {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-22px); }
+  }
+
+  /* ---------- buttons ---------- */
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  button {
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 16px;
+    border-radius: 11px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform .08s ease, background-color .15s ease, border-color .15s ease, opacity .15s ease;
+  }
+
+  button:active { transform: scale(.97); }
+
+  .btn-primary {
+    color: #20160f;
+    background: linear-gradient(180deg, #f8d07f, #eaa45c);
+    box-shadow: 0 6px 18px -8px rgba(240, 170, 90, .8);
+    flex: 1;
+  }
+
+  .btn-primary:hover { filter: brightness(1.05); }
+
+  .btn-ghost {
+    color: #c9cfd9;
+    background: rgba(255, 255, 255, .06);
+    border-color: rgba(255, 255, 255, .1);
+  }
+
+  .btn-ghost:hover { background: rgba(255, 255, 255, .1); }
+  .btn-ghost:disabled { opacity: .4; cursor: default; }
+
+  /* ---------- board ---------- */
+  .board {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    padding: var(--pad);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
+    border: 1px solid rgba(255, 255, 255, .07);
+    box-shadow: 0 30px 60px -30px rgba(0, 0, 0, .9), inset 0 1px 0 rgba(255,255,255,.05);
+    container-type: inline-size;
+    touch-action: none;
+    overflow: hidden;
+  }
+
+  .grid {
+    position: absolute;
+    inset: var(--pad);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: var(--gap);
+  }
+
+  .cell {
+    border-radius: var(--tile-radius);
+    background: rgba(255, 255, 255, .045);
+  }
+
+  .tile-layer {
+    position: absolute;
+    inset: var(--pad);
+  }
+
+  .tile {
+    position: absolute;
+    width: calc((100% - 3 * var(--gap)) / 4);
+    height: calc((100% - 3 * var(--gap)) / 4);
+    left: calc(var(--c) * ((100% - 3 * var(--gap)) / 4 + var(--gap)));
+    top: calc(var(--r) * ((100% - 3 * var(--gap)) / 4 + var(--gap)));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--tile-radius);
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: left .12s ease, top .12s ease, background-color .15s ease;
+    will-change: left, top;
+  }
+
+  /* responsive font sizes via container queries */
+  .tile { font-size: 10.5cqw; }
+  .tile.len-3 { font-size: 8.4cqw; }
+  .tile.len-4 { font-size: 6.9cqw; }
+  .tile.len-5 { font-size: 5.6cqw; }
+
+  /* tile palette */
+  .v-2    { background: #eee4da; color: #6b6055; }
+  .v-4    { background: #ede0c8; color: #6b6055; }
+  .v-8    { background: #f2b179; color: #fff8f0; }
+  .v-16   { background: #f59563; color: #fff8f0; }
+  .v-32   { background: #f67c5f; color: #fff8f0; }
+  .v-64   { background: #f65e3b; color: #fff8f0; }
+  .v-128  { background: #edcf72; color: #fffaf0; box-shadow: 0 0 18px -4px rgba(237, 207, 114, .55); }
+  .v-256  { background: #edcc61; color: #fffaf0; box-shadow: 0 0 20px -4px rgba(237, 204, 97, .6); }
+  .v-512  { background: #edc850; color: #fffaf0; box-shadow: 0 0 22px -4px rgba(237, 200, 80, .65); }
+  .v-1024 { background: #edc53f; color: #fffaf0; box-shadow: 0 0 24px -4px rgba(237, 197, 63, .7); }
+  .v-2048 { background: #edc22e; color: #fffaf0; box-shadow: 0 0 30px -3px rgba(237, 194, 46, .85); }
+  .v-super{ background: #3b3f4a; color: #ffe6a8; box-shadow: 0 0 30px -3px rgba(255, 220, 140, .6); }
+
+  .tile.new { animation: appear .18s ease-out; }
+  .tile.merged { animation: pop .2s ease-out; }
+
+  @keyframes appear {
+    from { transform: scale(.2); opacity: 0; }
+    to   { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes pop {
+    0%   { transform: scale(.7); }
+    55%  { transform: scale(1.16); }
+    100% { transform: scale(1); }
+  }
+
+  /* ---------- overlay ---------- */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 24px;
+    text-align: center;
+    background: rgba(12, 15, 20, .72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: var(--radius);
+    z-index: 5;
+    animation: fadeIn .25s ease-out;
+  }
+
+  .overlay.show { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .overlay .emoji { font-size: 40px; line-height: 1; }
+  .overlay h2 { margin: 4px 0 0; font-size: 26px; }
+  .overlay p { margin: 2px 0 14px; color: #a4adbc; font-size: 14px; }
+  .overlay .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .overlay button { min-width: 120px; }
+
+  .hint {
+    margin: 14px 2px 0;
+    font-size: 12px;
+    color: #77808f;
+    text-align: center;
+    line-height: 1.9;
+  }
+
+  kbd {
+    display: inline-block;
+    font-family: var(--font);
+    font-size: 10px;
+    line-height: 1;
+    padding: 4px 6px;
+    border-radius: 5px;
+    color: #c3cad6;
+    background: rgba(255, 255, 255, .08);
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-bottom-width: 2px;
+    margin: 0 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <h1>2048</h1>
+      <p>اعداد هم‌ارزش را به هم برسان</p>
+    </div>
+    <div class="scores">
+      <div class="score-box" id="scoreBox">
+        <span class="label">امتیاز</span>
+        <span class="value" id="score">0</span>
+      </div>
+      <div class="score-box">
+        <span class="label">رکورد</span>
+        <span class="value" id="best">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn-primary" id="newGame">بازی جدید</button>
+    <button class="btn-ghost" id="undo" disabled>بازگشت ↺</button>
+  </div>
+
+  <div class="board" id="board">
+    <div class="grid" id="grid"></div>
+    <div class="tile-layer" id="tiles"></div>
+    <div class="overlay" id="overlay"></div>
+  </div>
+
+  <p class="hint">
+    حرکت با <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd> <kbd>←</kbd> یا <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> — روی موبایل انگشت را بکشید<br />
+    <kbd>Z</kbd> بازگشت · <kbd>R</kbd> بازی جدید
+  </p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================= setup ================= */
+  const SIZE = 4;
+  const STORE_BEST = '2048:best';
+  const STORE_BOARD = '2048:board';
+
+  const boardEl = document.getElementById('board');
+  const gridEl = document.getElementById('grid');
+  const layerEl = document.getElementById('tiles');
+  const overlayEl = document.getElementById('overlay');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const scoreBoxEl = document.getElementById('scoreBox');
+  const undoBtn = document.getElementById('undo');
+  const newBtn = document.getElementById('newGame');
+
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    const d = document.createElement('div');
+    d.className = 'cell';
+    gridEl.appendChild(d);
+  }
+
+  let grid = emptyGrid();
+  let score = 0;
+  let best = Number(localStorage.getItem(STORE_BEST) || 0) || 0;
+  let busy = false;
+  let overlayOpen = false;
+  let won = false;
+  let keepPlaying = false;
+  const undoStack = [];
+
+  function emptyGrid() {
+    return Array.from({ length: SIZE }, () => Array(SIZE).fill(null));
+  }
+
+  /* ================= tiles ================= */
+  function tileLook(el, value) {
+    const key = value > 2048 ? 'super' : String(value);
+    el.className = 'tile v-' + key + ' len-' + String(value).length;
+    el.textContent = String(value);
+  }
+
+  function createTile(r, c, value, kind) {
+    const el = document.createElement('div');
+    el.style.setProperty('--r', r);
+    el.style.setProperty('--c', c);
+    tileLook(el, value);
+    if (kind) {
+      el.classList.add(kind);
+      setTimeout(() => el.classList.remove(kind), 240);
+    }
+    layerEl.appendChild(el);
+    return { value, r, c, el };
+  }
+
+  function setPos(t) {
+    t.el.style.setProperty('--r', t.r);
+    t.el.style.setProperty('--c', t.c);
+  }
+
+  function dropTile(t) {
+    if (t && t.el && t.el.parentNode) t.el.remove();
+  }
+
+  /* ================= scoring ================= */
+  const fmt = (n) => n.toLocaleString('en-US');
+
+  function addScore(points) {
+    score += points;
+    const f = document.createElement('span');
+    f.className = 'float';
+    f.textContent = '+' + points;
+    scoreBoxEl.appendChild(f);
+    setTimeout(() => f.remove(), 720);
+  }
+
+  function updateScores() {
+    if (score > best) {
+      best = score;
+      localStorage.setItem(STORE_BEST, String(best));
+    }
+    scoreEl.textContent = fmt(score);
+    bestEl.textContent = fmt(best);
+    undoBtn.disabled = undoStack.length === 0 || busy;
+  }
+
+  /* ================= movement lines ================= */
+  function buildLines() {
+    const left = [], right = [], up = [], down = [];
+    for (let r = 0; r < SIZE; r++) {
+      const row = [];
+      for (let c = 0; c < SIZE; c++) row.push([r, c]);
+      left.push(row);
+      right.push([...row].reverse());
+    }
+    for (let c = 0; c < SIZE; c++) {
+      const col = [];
+      for (let r = 0; r < SIZE; r++) col.push([r, c]);
+      up.push(col);
+      down.push([...col].reverse());
+    }
+    return { left, right, up, down };
+  }
+  const LINES = buildLines();
+
+  /* ================= move ================= */
+  function snapshot() {
+    return {
+      values: grid.map((row) => row.map((t) => (t ? t.value : 0))),
+      score
+    };
+  }
+
+  function doMove(dir) {
+    if (busy || overlayOpen) return;
+
+    const newGrid = emptyGrid();
+    const merges = [];
+    let moved = false;
+
+    for (const line of LINES[dir]) {
+      const lineTiles = [];
+      for (const [r, c] of line) {
+        if (grid[r][c]) lineTiles.push(grid[r][c]);
+      }
+
+      let i = 0;
+      let k = 0;
+      while (i < lineTiles.length) {
+        const a = lineTiles[i];
+        const b = lineTiles[i + 1];
+        const [r, c] = line[k];
+
+        if (b && a.value === b.value) {
+          moved = true;
+          merges.push({ a, b, r, c, value: a.value * 2 });
+          i += 2;
+        } else {
+          if (a.r !== r || a.c !== c) moved = true;
+          a.r = r;
+          a.c = c;
+          setPos(a);
+          newGrid[r][c] = a;
+          i += 1;
+        }
+        k += 1;
+      }
+    }
+
+    if (!moved) return;
+
+    undoStack.push(snapshot());
+    if (undoStack.length > 30) undoStack.shift();
+
+    busy = true;
+    undoBtn.disabled = true;
+
+    const finish = () => {
+      for (const m of merges) {
+        dropTile(m.a);
+        dropTile(m.b);
+        newGrid[m.r][m.c] = createTile(m.r, m.c, m.value, 'merged');
+        addScore(m.value);
+        if (m.value === 2048 && !won) won = true;
+      }
+      grid = newGrid;
+      spawnTile();
+      busy = false;
+      updateScores();
+      save();
+      if (won && !keepPlaying) {
+        showOverlay('win');
+      } else if (!canMove()) {
+        showOverlay('over');
+      }
+    };
+
+    if (merges.length) setTimeout(finish, 125);
+    else setTimeout(finish, 95);
+  }
+
+  function spawnTile() {
+    const empty = [];
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        if (!grid[r][c]) empty.push([r, c]);
+      }
+    }
+    if (!empty.length) return;
+    const [r, c] = empty[(Math.random() * empty.length) | 0];
+    grid[r][c] = createTile(r, c, Math.random() < 0.9 ? 2 : 4, 'new');
+  }
+
+  function canMove() {
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const t = grid[r][c];
+        if (!t) return true;
+        const right = grid[r][c + 1];
+        const down = grid[r + 1] ? grid[r + 1][c] : null;
+        if (right && right.value === t.value) return true;
+        if (down && down.value === t.value) return true;
+      }
+    }
+    return false;
+  }
+
+  /* ================= board rebuild ================= */
+  function rebuild(values, newScore, animate) {
+    layerEl.innerHTML = '';
+    grid = emptyGrid();
+    score = newScore;
+    won = false;
+    keepPlaying = false;
+    busy = false;
+    hideOverlay();
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const v = values[r] && values[r][c];
+        if (v) grid[r][c] = createTile(r, c, v, animate ? 'new' : null);
+      }
+    }
+    updateScores();
+    save();
+  }
+
+  function newGame() {
+    undoStack.length = 0;
+    layerEl.innerHTML = '';
+    grid = emptyGrid();
+    score = 0;
+    won = false;
+    keepPlaying = false;
+    busy = false;
+    hideOverlay();
+    spawnTile();
+    spawnTile();
+    updateScores();
+    save();
+  }
+
+  function undo() {
+    if (busy || !undoStack.length) return;
+    const s = undoStack.pop();
+    rebuild(s.values, s.score, false);
+  }
+
+  /* ================= overlay ================= */
+  function showOverlay(type) {
+    overlayOpen = true;
+    overlayEl.innerHTML = '';
+
+    const emoji = document.createElement('div');
+    emoji.className = 'emoji';
+    const title = document.createElement('h2');
+    const text = document.createElement('p');
+    const row = document.createElement('div');
+    row.className = 'row';
+
+    if (type === 'win') {
+      emoji.textContent = '🎉';
+      title.textContent = 'بردی!';
+      text.textContent = 'به خانهٔ ۲۰۴۸ رسیدی. ادامه می‌دهی؟';
+      const keep = document.createElement('button');
+      keep.className = 'btn-primary';
+      keep.textContent = 'ادامه';
+      keep.onclick = () => {
+        keepPlaying = true;
+        hideOverlay();
+      };
+      const again = document.createElement('button');
+      again.className = 'btn-ghost';
+      again.textContent = 'بازی جدید';
+      again.onclick = newGame;
+      row.append(keep, again);
+    } else {
+      emoji.textContent = '💀';
+      title.textContent = 'بازی تمام شد';
+      text.textContent = 'امتیاز تو: ' + fmt(score) + ' — دوباره امتحان کن!';
+      const again = document.createElement('button');
+      again.className = 'btn-primary';
+      again.textContent = 'تلاش دوباره';
+      again.onclick = newGame;
+      const back = document.createElement('button');
+      back.className = 'btn-ghost';
+      back.textContent = 'بازگشت یک حرکت';
+      back.onclick = () => {
+        hideOverlay();
+        undo();
+      };
+      back.disabled = undoStack.length === 0;
+      row.append(again, back);
+    }
+
+    overlayEl.append(emoji, title, text, row);
+    overlayEl.classList.add('show');
+  }
+
+  function hideOverlay() {
+    overlayOpen = false;
+    overlayEl.classList.remove('show');
+    overlayEl.innerHTML = '';
+  }
+
+  /* ================= persistence ================= */
+  function save() {
+    try {
+      const values = grid.map((row) => row.map((t) => (t ? t.value : 0)));
+      localStorage.setItem(
+        STORE_BOARD,
+        JSON.stringify({ values, score, won: won || keepPlaying, over: !canMove() && !overlayOpen })
+      );
+    } catch (e) { /* ignore */ }
+  }
+
+  function restore() {
+    try {
+      const raw = localStorage.getItem(STORE_BOARD);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || !Array.isArray(data.values)) return false;
+      const hasTile = data.values.some((row) => row.some((v) => v > 0));
+      if (!hasTile) return false;
+      score = Number(data.score) || 0;
+      won = !!data.won;
+      layerEl.innerHTML = '';
+      grid = emptyGrid();
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          const v = data.values[r] && data.values[r][c];
+          if (v) grid[r][c] = createTile(r, c, v, null);
+        }
+      }
+      updateScores();
+      if (data.over) showOverlay('over');
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* ================= input: keyboard ================= */
+  const KEYS = {
+    ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+    a: 'left', d: 'right', w: 'up', s: 'down',
+    h: 'left', l: 'right', k: 'up', j: 'down'
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+
+    if (KEYS[k]) {
+      e.preventDefault();
+      doMove(KEYS[k]);
+      return;
+    }
+    if (k === 'z') { e.preventDefault(); undo(); return; }
+    if (k === 'r') { e.preventDefault(); newGame(); return; }
+    if (k === 'Enter' && overlayOpen) {
+      const btn = overlayEl.querySelector('button');
+      if (btn) { e.preventDefault(); btn.click(); }
+    }
+  });
+
+  /* ================= input: touch ================= */
+  let startX = 0, startY = 0, tracking = false;
+
+  boardEl.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    tracking = true;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  boardEl.addEventListener('touchmove', (e) => {
+    if (tracking) e.preventDefault();
+  }, { passive: false });
+
+  boardEl.addEventListener('touchend', (e) => {
+    if (!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    const absX = Math.abs(dx), absY = Math.abs(dy);
+    if (Math.max(absX, absY) < 22) return;
+    if (absX > absY) doMove(dx > 0 ? 'right' : 'left');
+    else doMove(dy > 0 ? 'down' : 'up');
+  }, { passive: true });
+
+  /* ================= input: mouse drag (desktop bonus) ================= */
+  let mouseDown = false, mx = 0, my = 0;
+  boardEl.addEventListener('mousedown', (e) => {
+    mouseDown = true;
+    mx = e.clientX;
+    my = e.clientY;
+  });
+  window.addEventListener('mouseup', (e) => {
+    if (!mouseDown) return;
+    mouseDown = false;
+    const dx = e.clientX - mx;
+    const dy = e.clientY - my;
+    const absX = Math.abs(dx), absY = Math.abs(dy);
+    if (Math.max(absX, absY) < 30) return;
+    if (absX > absY) doMove(dx > 0 ? 'right' : 'left');
+    else doMove(dy > 0 ? 'down' : 'up');
+  });
+
+  /* ================= buttons ================= */
+  newBtn.addEventListener('click', newGame);
+  undoBtn.addEventListener('click', undo);
+
+  /* ================= boot ================= */
+  updateScores();
+  if (!restore()) newGame();
+})();
+</script>
+</body>
+</html>
