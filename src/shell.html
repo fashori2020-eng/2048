@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#07090d">
+<title>۸ بال | بیلیارد سه‌بعدی</title>
+<style>
+/* ====__CSS__==== */
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="scene"></canvas>
+
+  <!-- HUD -->
+  <header id="hud">
+    <div class="brand">
+      <div class="logo">8</div>
+      <div class="brand-txt"><b>بیلیارد سه‌بعدی</b><span>۸ بال · آرنا</span></div>
+    </div>
+    <div class="players">
+      <div class="pcard p1" id="cardP1">
+        <div class="phead"><span class="pname">شما</span><span class="pball" id="p1ball"></span></div>
+        <div class="pbars"><span class="grp" id="p1group">گروه؟</span><span class="rem" id="p1rem">۷</span></div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="pcard p2" id="cardP2">
+        <div class="phead"><span class="pname">حریف</span><span class="pball" id="p2ball"></span></div>
+        <div class="pbars"><span class="grp" id="p2group">گروه؟</span><span class="rem" id="p2rem">۷</span></div>
+      </div>
+    </div>
+    <div class="tools">
+      <button class="icon" id="btnSound" title="صدا">🔊</button>
+      <button class="icon" id="btnCam" title="نمایشگر دوربین">🎥</button>
+      <button class="icon" id="btnHelp" title="راهنما">؟</button>
+    </div>
+  </header>
+
+  <div id="hudBottom">
+    <div id="hint" class="hint"></div>
+    <div id="shotbar"><div id="shotfill"></div></div>
+  </div>
+
+  <!-- power meter (left) -->
+  <div id="power">
+    <div class="pwr-label">قدرت</div>
+    <div class="pwr-track"><div class="pwr-fill" id="powerFill"></div><div class="pwr-mark"></div></div>
+    <div class="pwr-num"><span id="powerNum">0</span>%</div>
+  </div>
+
+  <!-- aim spin widget (right) -->
+  <div id="spinPanel">
+    <div class="spin-title">چرخش (مکان)</div>
+    <canvas id="spinPad" width="150" height="150"></canvas>
+    <div class="spin-vals"><span>↔ <b id="spinX">0</b></span><span>↕ <b id="spinY">0</b></span></div>
+  </div>
+
+  <!-- power slider (bottom center) -->
+  <div id="sliderWrap">
+    <div class="sliderSide"><span id="sliderNum">45</span>%</div>
+    <input id="powerRange" type="range" min="5" max="100" value="45" step="1" aria-label="قدرت ضربه">
+    <button id="btnShoot" class="shoot">ضربه!</button>
+    <div id="aimReadout"><span id="aimDeg">0</span>°</div>
+  </div>
+
+  <button id="btnAimMode" class="chip active">خط نشانه: کامل</button>
+
+  <!-- overlays -->
+  <div class="overlay" id="ovMenu">
+    <div class="panel">
+      <div class="big8"><span>8</span></div>
+      <h1>بیلیارد سه‌بعدی</h1>
+      <p class="sub">میز حرفه‌ای، فیزیک واقعی، حریف هوش مصنوعی</p>
+      <div class="mode-grid">
+        <button class="mode" data-mode="2p"><b>حریف کامپیوتر</b><small>بازی ۸ بال</small></button>
+        <button class="mode" data-mode="practice"><b>تمرین آزاد</b><small>بدون نوبت</small></button>
+      </div>
+      <div class="diff">
+        <span>سختی حریف:</span>
+        <button class="dbtn active" data-diff="0">آسان</button>
+        <button class="dbtn" data-diff="1">متوسط</button>
+        <button class="dbtn" data-diff="2">سخت</button>
+      </div>
+      <button class="primary" id="btnStart">شروع بازی</button>
+      <div class="tips">با ماوس بکشید تا بچرخد · اسکرول برای زوم · جابه‌جایی با WASD</div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="ovPause">
+    <div class="panel small">
+      <h2>توقف</h2>
+      <button class="primary" id="btnResume">ادامه</button>
+      <button class="ghost" id="btnRestart">شروع دوباره</button>
+      <button class="ghost" id="btnMenu">منوی اصلی</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="ovHelp">
+    <div class="panel wide">
+      <h2>راهنمای بازی</h2>
+      <div class="help-grid">
+        <div><b>هدف</b><p>ابتدا ۷ توپ گروه خود (ساده یا راه‌دار) را جیب کنید و سپس توپ ۸ را. جیب‌کردن ۸ در پایان، برنده می‌کند؛ جیب‌کردن زودهنگام ۸ = باخت.</p></div>
+        <div><b>نشانه‌گیری</b><p>ماوس را حرکت دهید تا خط نشانه بچرخد. برای ضربه، کلیک کنید و ماوس را در خلاف جهت نشانه بکشید؛ هرچه بیشتر بکشید قدرت بیشتر می‌شود. با کلیک راست/وسط یا <kbd>Shift</kbd>+کشیدن دوربین می‌چرخد.</p></div>
+        <div><b>ضربه</b><p>قدرت را با اسلایدر پایین یا کلیدهای ↑/↓ تنظیم کنید و <kbd>Space</kbd> یا دکمهٔ «ضربه!» را بزنید. دقت کنید جهت کشیدن، معکوسِ جهت ضربه است.</p></div>
+        <div><b>چرخش</b><p>روی دایرهٔ چرخش کلیک کنید تا توپ را با اسپین بزنید (چپ/راست برای پیچ جانبی، بالا/پایین برای جلو/عقب).</p></div>
+        <div><b>دوربین</b><p>کشیدن با راست/وسط ماوس، اسکرول برای زوم، <kbd>W A S D</kbd> برای جابه‌جایی، <kbd>C</kbd> برای نمای بالای میز، <kbd>V</kbd> نمای نشانه‌گیری.</p></div>
+        <div><b>کلیدها</b><p><kbd>Space</kbd> ضربه · <kbd>↑↓</kbd> قدرت · <kbd>←→</kbd> چرخش نشانه · <kbd>R</kbd> ریست · <kbd>Esc</kbd> توقف · <kbd>M</kbd> صدا</p></div>
+      </div>
+      <button class="primary" id="btnHelpClose">فهمیدم</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="ovResult">
+    <div class="panel small">
+      <h2 id="resTitle">پیروز شدید!</h2>
+      <p id="resSub" class="sub"></p>
+      <button class="primary" id="btnAgain">بازی دوباره</button>
+      <button class="ghost" id="btnToMenu">منوی اصلی</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <div id="foulFlash"></div>
+</div>
+<script>
+/* ====__THREE__==== */
+</script>
+<script>
+/* ====__GAME__==== */
+</script>
+</body>
+</html>
